@@ -1,0 +1,19 @@
+services:
+  mariadb:
+    image: mariadb:11
+    network_mode: "host"
+    container_name: inf008-ecommerce-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: ecommerce_inf008
+      MARIADB_USER: inf008
+      MARIADB_PASSWORD: inf008
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  mariadb_data:
