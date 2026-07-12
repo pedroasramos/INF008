@@ -47,6 +47,18 @@ public class Order {
         return total;
     }
 
+    public void setDiscountPolicy(DiscountPolicy discountPolicy) {
+        this.discountPolicy = discountPolicy;
+    }
+
+    public void setShippingPolicy(ShippingPolicy shippingPolicy) {
+        this.shippingPolicy = shippingPolicy;
+    }
+
+    public void setPaymentMethod(Payable paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
     public void confirm(int code){
         status = OrderStatus.PAID;
     }
