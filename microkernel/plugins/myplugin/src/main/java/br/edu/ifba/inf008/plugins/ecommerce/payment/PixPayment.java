@@ -1,24 +1,27 @@
 package br.edu.ifba.inf008.plugins.ecommerce.payment;
 
+import br.edu.ifba.inf008.plugins.ecommerce.model.OrderStatus;
+
 import java.util.UUID;
 
 public class PixPayment implements Payable{
     private String pixKey;
+    private OrderStatus orderStatus;
 
     public PixPayment(String pixKey) {
         this.pixKey = pixKey;
     }
 
     @Override
-    public boolean pay() {
+    public PaymentStatus pay(double amount) {
         if (validate()){
-            return true;
+            return PaymentStatus.PAID;
         }
-        return false;
+        return PaymentStatus.INVALID;
     }
 
     @Override
-    public boolean validate() {
+    protected boolean validate() {
         try {
             return (isCPF(pixKey)
                 || isCNPJ(pixKey)

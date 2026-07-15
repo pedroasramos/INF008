@@ -2,6 +2,7 @@ package br.edu.ifba.inf008.plugins.ecommerce.model;
 
 import br.edu.ifba.inf008.plugins.ecommerce.discount.DiscountPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.payment.Payable;
+import br.edu.ifba.inf008.plugins.ecommerce.payment.PaymentStatus;
 import br.edu.ifba.inf008.plugins.ecommerce.shipping.ShippingPolicy;
 
 import java.util.ArrayList;
@@ -20,8 +21,8 @@ public class Order {
     private double shippingCost;
     private double total;
 
-    public void addItem(Product product, int quantity, double unitPrice){
-        OrderItem orderItem = new OrderItem(product, quantity, unitPrice);
+    public void addItem(CartItem cartItem){
+        OrderItem orderItem = new OrderItem(cartItem.getProduct(), cartItem.getQuantity(), cartItem.getPrice());
         orderItems.add(orderItem);
     }
 
@@ -33,7 +34,7 @@ public class Order {
     }
 
     public double calculateDiscount(){
-        discount = discountPolicy.calculateDicount(this);
+        discount = discountPolicy.calculateDiscount(this);
         return discount;
     }
 
@@ -43,7 +44,7 @@ public class Order {
     }
 
     public double calculateTotal(){
-        total = (subtotal - discount) + shippingCost;
+        total = (calculateSubtotal() - calculateDiscount()) + calculateShipping();
         return total;
     }
 
@@ -59,7 +60,26 @@ public class Order {
         this.paymentMethod = paymentMethod;
     }
 
-    public void confirm(int code){
+    public void processPayment(){
+        PaymentStatus paymentStatus;
+        paymentStatus = paymentMethod.pay(calculateTotal());
+        switch (paymentStatus){
+            case PAID:
+                confirm();
+                break;
+            case INVALID:
+                invalid();
+                break;
+            case PENDING:
+                pending();
+                break;
+            case FAILED:
+                cancel();
+                break;
+        }
+    }
+
+    public void confirm(){
         status = OrderStatus.PAID;
     }
 
@@ -73,5 +93,9 @@ public class Order {
 
     public void cancel(){
         status = OrderStatus.CANCELLED;
+    }
+
+    public OrderStatus getStatus() {
+        return status;
     }
 }

@@ -1,5 +1,7 @@
 package br.edu.ifba.inf008.plugins.ecommerce.payment;
 
+import br.edu.ifba.inf008.plugins.ecommerce.model.OrderStatus;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -16,15 +18,15 @@ public class BankSlipPayment implements Payable{
     }
 
     @Override
-    public boolean pay() {
+    public PaymentStatus pay(double amount) {
         if (validate()){
-            return true;
+            return PaymentStatus.PAID;
         }
-        return false;
+        return PaymentStatus.PENDING;
     }
 
     @Override
-    public boolean validate() {
+    protected boolean validate() {
         try{
             DateTimeFormatter formatter1 = DateTimeFormatter.ofPattern(formatter)
                     .withResolverStyle(ResolverStyle.STRICT);

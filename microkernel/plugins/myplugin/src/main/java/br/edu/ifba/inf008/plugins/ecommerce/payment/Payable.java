@@ -1,7 +1,8 @@
 package br.edu.ifba.inf008.plugins.ecommerce.payment;
 
+
 public interface Payable {
-    public boolean pay();
-    public boolean validate();
+    public PaymentStatus pay(double amount);
+    protected boolean validate();
 
 }

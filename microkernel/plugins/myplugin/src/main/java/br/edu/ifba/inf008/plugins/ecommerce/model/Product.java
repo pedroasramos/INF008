@@ -15,6 +15,14 @@ public class Product {
         stock -= quantity;
     }
 
+    public int getProduct_id() {
+        return product_id;
+    }
+
+    public boolean hasStock(int quantity){
+        return quantity < getStock();
+    }
+
     public String getName() {
         return name;
     }

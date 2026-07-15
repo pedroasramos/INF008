@@ -18,6 +18,20 @@
             <artifactId>interfaces</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
+
+        <!-- MariaDB JDBC -->
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>3.5.3</version>
+        </dependency>
+
+        <!-- HikariCP -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>7.1.0</version>
+        </dependency>
     </dependencies>
 
     <build>

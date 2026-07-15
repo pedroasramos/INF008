@@ -28,4 +28,8 @@ public class Cart {
         }
         return sum;
     }
+
+    public List<CartItem> getItems() {
+        return items;
+    }
 }

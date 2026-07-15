@@ -1,5 +1,7 @@
 package br.edu.ifba.inf008.plugins.ecommerce.payment;
 
+import br.edu.ifba.inf008.plugins.ecommerce.model.OrderStatus;
+
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -20,15 +22,15 @@ public class CreditCardPayment implements Payable{
     }
 
     @Override
-    public boolean pay() {
+    public PaymentStatus pay(double amount) {
         if (validate()){
-            return true;
+            return PaymentStatus.PAID;
         }
-        return false;
+        return PaymentStatus.FAILED;
     }
 
     @Override
-    public boolean validate() {
+    protected boolean validate() {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern(template)
                     .withResolverStyle(ResolverStyle.STRICT);
