@@ -1,15 +1,15 @@
 package br.edu.ifba.inf008.plugins.ecommerce.service;
 
 import br.edu.ifba.inf008.plugins.ecommerce.model.Product;
-import br.edu.ifba.inf008.plugins.ecommerce.repository.ProductRepository;
+import br.edu.ifba.inf008.plugins.ecommerce.repository.ProductRepositoryImp;
 
 import java.util.List;
 
 public class ProductService {
 
-    private ProductRepository repository;
+    private ProductRepositoryImp repository;
 
-    public ProductService(ProductRepository repository) {
+    public ProductService(ProductRepositoryImp repository) {
         this.repository = repository;
     }
 

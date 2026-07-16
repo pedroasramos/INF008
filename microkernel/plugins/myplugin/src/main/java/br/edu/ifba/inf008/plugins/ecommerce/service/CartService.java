@@ -2,15 +2,15 @@ package br.edu.ifba.inf008.plugins.ecommerce.service;
 
 import br.edu.ifba.inf008.plugins.ecommerce.model.Cart;
 import br.edu.ifba.inf008.plugins.ecommerce.model.Product;
-import br.edu.ifba.inf008.plugins.ecommerce.repository.CartRepository;
-import br.edu.ifba.inf008.plugins.ecommerce.repository.ProductRepository;
+import br.edu.ifba.inf008.plugins.ecommerce.repository.CartRepositoryImp;
+import br.edu.ifba.inf008.plugins.ecommerce.repository.ProductRepositoryImp;
 
 public class CartService {
 
-    private CartRepository cartRepository;
-    private ProductRepository productRepository;
+    private CartRepositoryImp cartRepository;
+    private ProductRepositoryImp productRepository;
 
-    public CartService(CartRepository cartRepository, ProductRepository productRepository) {
+    public CartService(CartRepositoryImp cartRepository, ProductRepositoryImp productRepository) {
         this.cartRepository = cartRepository;
         this.productRepository = productRepository;
     }

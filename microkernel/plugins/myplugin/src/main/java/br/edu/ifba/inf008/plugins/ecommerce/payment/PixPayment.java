@@ -15,13 +15,16 @@ public class PixPayment implements Payable{
     @Override
     public PaymentStatus pay(double amount) {
         if (validate()){
+            if(amount <= 0){
+                return PaymentStatus.FAILED;
+            }
             return PaymentStatus.PAID;
         }
         return PaymentStatus.INVALID;
     }
 
     @Override
-    protected boolean validate() {
+    public boolean validate() {
         try {
             return (isCPF(pixKey)
                 || isCNPJ(pixKey)

@@ -26,7 +26,12 @@ public class Order {
         orderItems.add(orderItem);
     }
 
+    public List<OrderItem> getOrderItems() {
+        return orderItems;
+    }
+
     public double calculateSubtotal(){
+        subtotal = 0;
         for(OrderItem orderItem : orderItems){
             subtotal += orderItem.calculateSubtotal();
         }
@@ -44,6 +49,7 @@ public class Order {
     }
 
     public double calculateTotal(){
+        total = 0;
         total = (calculateSubtotal() - calculateDiscount()) + calculateShipping();
         return total;
     }
@@ -63,39 +69,31 @@ public class Order {
     public void processPayment(){
         PaymentStatus paymentStatus;
         paymentStatus = paymentMethod.pay(calculateTotal());
+        convert(paymentStatus);
+    }
+
+    private void convert(PaymentStatus paymentStatus){
         switch (paymentStatus){
             case PAID:
-                confirm();
+                status = OrderStatus.PAID;
                 break;
             case INVALID:
-                invalid();
+                status = OrderStatus.INVALID_PAYMENT;
                 break;
             case PENDING:
-                pending();
+                status = OrderStatus.PENDING;
                 break;
             case FAILED:
-                cancel();
+                status = OrderStatus.CANCELLED;
                 break;
         }
     }
 
-    public void confirm(){
-        status = OrderStatus.PAID;
-    }
-
-    public void pending(){
-        status = OrderStatus.PENDING;
-    }
-
-    public void invalid(){
-        status = OrderStatus.INVALID_PAYMENT;
-    }
-
-    public void cancel(){
-        status = OrderStatus.CANCELLED;
-    }
-
     public OrderStatus getStatus() {
         return status;
+    }
+
+    public void setStatus(OrderStatus status) {
+        this.status = status;
     }
 }

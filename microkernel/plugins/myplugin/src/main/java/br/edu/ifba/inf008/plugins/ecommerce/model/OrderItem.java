@@ -11,6 +11,14 @@ public class OrderItem {
         this.unitPrice = unitPrice;
     }
 
+    public Product getProduct() {
+        return product;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
     public double calculateSubtotal(){
         return unitPrice * quantity;
     }

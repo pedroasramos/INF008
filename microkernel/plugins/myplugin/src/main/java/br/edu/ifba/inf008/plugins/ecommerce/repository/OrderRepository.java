@@ -2,17 +2,12 @@ package br.edu.ifba.inf008.plugins.ecommerce.repository;
 
 import br.edu.ifba.inf008.plugins.ecommerce.model.Order;
 
-public class OrderRepository {
+import java.util.List;
 
-    public void save(Order order){
-
-    }
-
-    public Order find(int order_id){
-        return order;
-    }
-
-    public void update(Order order){
-
-    }
+public interface OrderRepository {
+    public void save(Order order);
+    public Order find(int order_id);
+    public void update(Order order);
+    public List<Order> findAll();
+    public void delete(int order_id);
 }

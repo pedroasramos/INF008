@@ -3,17 +3,19 @@ package br.edu.ifba.inf008.plugins.ecommerce.service;
 import br.edu.ifba.inf008.plugins.ecommerce.discount.DiscountPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.model.*;
 import br.edu.ifba.inf008.plugins.ecommerce.payment.Payable;
-import br.edu.ifba.inf008.plugins.ecommerce.repository.CartRepository;
-import br.edu.ifba.inf008.plugins.ecommerce.repository.OrderRepository;
-import br.edu.ifba.inf008.plugins.ecommerce.repository.ProductRepository;
+import br.edu.ifba.inf008.plugins.ecommerce.repository.CartRepositoryImp;
+import br.edu.ifba.inf008.plugins.ecommerce.repository.OrderRepositoryImp;
+import br.edu.ifba.inf008.plugins.ecommerce.repository.ProductRepositoryImp;
 import br.edu.ifba.inf008.plugins.ecommerce.shipping.ShippingPolicy;
 
-public class OrderService {
-    private OrderRepository orderRepository;
-    private CartRepository cartRepository;
-    private ProductRepository productRepository;
+import java.util.List;
 
-    public OrderService(OrderRepository orderRepository, CartRepository cartRepository, ProductRepository productRepository) {
+public class OrderService {
+    private OrderRepositoryImp orderRepository;
+    private CartRepositoryImp cartRepository;
+    private ProductRepositoryImp productRepository;
+
+    public OrderService(OrderRepositoryImp orderRepository, CartRepositoryImp cartRepository, ProductRepositoryImp productRepository) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.productRepository = productRepository;
@@ -31,17 +33,54 @@ public class OrderService {
         order.setDiscountPolicy(discountPolicy);
         order.setShippingPolicy(shippingPolicy);
         order.setPaymentMethod(paymentMethod);
-        double total = order.calculateTotal();
+        order.processPayment();
+        switch (order.getStatus()){
+            case PAID:
+                for(CartItem cartItem : cart.getItems()){
+                    Product product = cartItem.getProduct();
+                    product.decreaseStock(cartItem.getQuantity());
+                    productRepository.update(product);
+                }
+                cart.clear();
+                cartRepository.update(cart);
+                break;
+            case PENDING:
+            case INVALID_PAYMENT:
+            case CANCELLED:
+                break;
+        }
+        orderRepository.save(order);
+    }
+
+    public Order findById(int order_id){
+        Order order = orderRepository.find(order_id);
+        if(order == null){
+            throw new IllegalArgumentException("Order not found");
+        }
+        return order;
+    }
+
+    public List<Order> findAll(){
+        return orderRepository.findAll();
+    }
+
+    public void cancelOrder(int order_id){
+        Order order = findById(order_id);
         if(order.getStatus() == OrderStatus.PAID){
-            Product product;
-            for(CartItem cartItem : cart.getItems()){
-                product = cartItem.getProduct();
-                product.decreaseStock(cartItem.getQuantity());
+            for(OrderItem orderItem : order.getOrderItems()){
+                Product product = orderItem.getProduct();
+                product.increaseStock(orderItem.getQuantity());
                 productRepository.update(product);
             }
-            orderRepository.save(order);
-            cart.clear();
-            cartRepository.update(cart);
+            order.setStatus(OrderStatus.CANCELLED);
+            orderRepository.update(order);
+        }
+    }
+
+    public void remove(int order_id){
+        Order order = findById(order_id);
+        if(order.getStatus() != OrderStatus.PAID){
+            orderRepository.delete(order_id);
         }
     }
 }

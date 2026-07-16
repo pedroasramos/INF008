@@ -24,13 +24,16 @@ public class CreditCardPayment implements Payable{
     @Override
     public PaymentStatus pay(double amount) {
         if (validate()){
+            if(amount <= 0){
+                return PaymentStatus.FAILED;
+            }
             return PaymentStatus.PAID;
         }
         return PaymentStatus.FAILED;
     }
 
     @Override
-    protected boolean validate() {
+    public boolean validate() {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern(template)
                     .withResolverStyle(ResolverStyle.STRICT);
