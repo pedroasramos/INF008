@@ -3,6 +3,7 @@ package br.edu.ifba.inf008.plugins.ecommerce.repository;
 import br.edu.ifba.inf008.plugins.ecommerce.discount.CouponDiscountPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.discount.DiscountPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.discount.DiscountPolicyFactory;
+import br.edu.ifba.inf008.plugins.ecommerce.exception.RepositoryException;
 import br.edu.ifba.inf008.plugins.ecommerce.model.Order;
 import br.edu.ifba.inf008.plugins.ecommerce.model.OrderItem;
 import br.edu.ifba.inf008.plugins.ecommerce.model.OrderStatus;
@@ -112,10 +113,10 @@ public class OrderRepositoryImp implements OrderRepository{
                 try {
                     conn.rollback();
                 } catch (SQLException rollbackEx) {
-                    throw new RuntimeException("Error reverting transaction", rollbackEx);
+                    throw new RepositoryException("Error reverting transaction", rollbackEx);
                 }
             }
-            throw new RuntimeException("Error saving order", e);
+            throw new RepositoryException("Error saving order", e);
 
         } finally {
             if (conn != null) {
@@ -123,12 +124,11 @@ public class OrderRepositoryImp implements OrderRepository{
                     conn.setAutoCommit(true);
                     conn.close();
                 } catch (SQLException closeEx) {
-                    throw new RuntimeException("Error closing connection", closeEx);
+                    throw new RepositoryException("Error closing connection", closeEx);
                 }
             }
         }
     }
-
 
     @Override
     public Order find(int order_id) {
@@ -149,7 +149,7 @@ public class OrderRepositoryImp implements OrderRepository{
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error searching for order by ID", e);
+            throw new RepositoryException("Error searching for order by ID", e);
         }
     }
 
@@ -170,11 +170,11 @@ public class OrderRepositoryImp implements OrderRepository{
 
             int rows = stmt.executeUpdate();
             if (rows == 0) {
-                throw new RuntimeException("Order with ID " + order.getOrder_id() + " not found.");
+                throw new SQLException("Order with ID " + order.getOrder_id() + " not found.");
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error updating order", e);
+            throw new RepositoryException("Error updating order", e);
         }
     }
 
@@ -193,7 +193,7 @@ public class OrderRepositoryImp implements OrderRepository{
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error retrieving all orders", e);
+            throw new RepositoryException("Error retrieving all orders", e);
         }
 
         return orders;
@@ -201,7 +201,7 @@ public class OrderRepositoryImp implements OrderRepository{
 
     @Override
     public void delete(int order_id) {
-        String sql = "DELETE FROM orders WHERE order_id = ?"; // order_items via ON DELETE CASCADE
+        String sql = "DELETE FROM orders WHERE order_id = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -210,11 +210,11 @@ public class OrderRepositoryImp implements OrderRepository{
             int rows = stmt.executeUpdate();
 
             if (rows == 0) {
-                throw new RuntimeException("Order with ID " + order_id + " not found.");
+                throw new SQLException("Order with ID " + order_id + " not found.");
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error deleting order", e);
+            throw new RepositoryException("Error deleting order", e);
         }
     }
 

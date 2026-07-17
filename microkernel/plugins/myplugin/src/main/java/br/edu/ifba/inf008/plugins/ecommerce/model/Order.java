@@ -21,6 +21,11 @@ public class Order {
     private double shippingCost;
     private double total;
 
+    public Order(){
+        this.order_id = 0;
+        this.orderItems = new ArrayList<>();
+    }
+
     public Order(int order_id, List<OrderItem> orderItems, DiscountPolicy discountPolicy,
                  ShippingPolicy shippingPolicy, Payable paymentMethod, OrderStatus status,
                  double subtotal, double discount, double shippingCost, double total) {

@@ -5,6 +5,12 @@ public class Customer {
     private String name;
     private String email;
 
+    public Customer(String name, String email) {
+        this.customer_id = 0;
+        this.name = name;
+        this.email = email;
+    }
+
     public Customer(int customer_id, String name, String email) {
         this.customer_id = customer_id;
         this.name = name;
@@ -13,6 +19,10 @@ public class Customer {
 
     public int getCustomer_id() {
         return customer_id;
+    }
+
+    public void setCustomer_id(int customer_id) {
+        this.customer_id = customer_id;
     }
 
     public String getName() {

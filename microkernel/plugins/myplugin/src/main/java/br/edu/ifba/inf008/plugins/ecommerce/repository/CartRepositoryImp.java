@@ -1,5 +1,6 @@
 package br.edu.ifba.inf008.plugins.ecommerce.repository;
 
+import br.edu.ifba.inf008.plugins.ecommerce.exception.RepositoryException;
 import br.edu.ifba.inf008.plugins.ecommerce.model.Cart;
 import br.edu.ifba.inf008.plugins.ecommerce.model.CartItem;
 import br.edu.ifba.inf008.plugins.ecommerce.model.Product;
@@ -48,7 +49,7 @@ public class CartRepositoryImp implements CartRepository{
 
         } catch (SQLException e) {
             rollbackQuietly(conn);
-            throw new RuntimeException("Error saving cart", e);
+            throw new RepositoryException("Error saving cart", e);
 
         } finally {
             closeQuietly(conn);
@@ -76,7 +77,7 @@ public class CartRepositoryImp implements CartRepository{
 
         } catch (SQLException e) {
             rollbackQuietly(conn);
-            throw new RuntimeException("Error updating cart", e);
+            throw new RepositoryException("Error updating cart", e);
 
         } finally {
             closeQuietly(conn);
@@ -85,7 +86,7 @@ public class CartRepositoryImp implements CartRepository{
 
     @Override
     public void delete(int cart_id) {
-        String sql = "DELETE FROM carts WHERE cart_id = ?"; // cart_items via ON DELETE CASCADE
+        String sql = "DELETE FROM carts WHERE cart_id = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -94,11 +95,11 @@ public class CartRepositoryImp implements CartRepository{
             int rows = stmt.executeUpdate();
 
             if (rows == 0) {
-                throw new RuntimeException("Cart with ID " + cart_id + " not found.");
+                throw new SQLException("Cart with ID " + cart_id + " not found.");
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error deleting cart", e);
+            throw new RepositoryException("Error deleting cart", e);
         }
     }
 
@@ -127,7 +128,7 @@ public class CartRepositoryImp implements CartRepository{
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error searching for cart by ID", e);
+            throw new RepositoryException("Error searching for cart by ID", e);
         }
     }
 
@@ -167,7 +168,7 @@ public class CartRepositoryImp implements CartRepository{
             try {
                 conn.rollback();
             } catch (SQLException e) {
-                throw new RuntimeException("Error reverting transaction", e);
+                throw new RepositoryException("Error reverting transaction", e);
             }
         }
     }
@@ -178,7 +179,7 @@ public class CartRepositoryImp implements CartRepository{
                 conn.setAutoCommit(true);
                 conn.close();
             } catch (SQLException e) {
-                throw new RuntimeException("Error closing connection", e);
+                throw new RepositoryException("Error closing connection", e);
             }
         }
     }

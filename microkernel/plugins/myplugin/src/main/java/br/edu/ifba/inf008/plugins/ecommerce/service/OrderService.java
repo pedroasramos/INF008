@@ -1,21 +1,21 @@
 package br.edu.ifba.inf008.plugins.ecommerce.service;
 
 import br.edu.ifba.inf008.plugins.ecommerce.discount.DiscountPolicy;
+import br.edu.ifba.inf008.plugins.ecommerce.exception.EntityNotFoundException;
 import br.edu.ifba.inf008.plugins.ecommerce.model.*;
 import br.edu.ifba.inf008.plugins.ecommerce.payment.Payable;
-import br.edu.ifba.inf008.plugins.ecommerce.repository.CartRepositoryImp;
-import br.edu.ifba.inf008.plugins.ecommerce.repository.OrderRepositoryImp;
-import br.edu.ifba.inf008.plugins.ecommerce.repository.ProductRepositoryImp;
+import br.edu.ifba.inf008.plugins.ecommerce.repository.*;
 import br.edu.ifba.inf008.plugins.ecommerce.shipping.ShippingPolicy;
 
 import java.util.List;
 
 public class OrderService {
-    private OrderRepositoryImp orderRepository;
-    private CartRepositoryImp cartRepository;
-    private ProductRepositoryImp productRepository;
 
-    public OrderService(OrderRepositoryImp orderRepository, CartRepositoryImp cartRepository, ProductRepositoryImp productRepository) {
+    private final OrderRepository orderRepository;
+    private final CartRepository cartRepository;
+    private final ProductRepository productRepository;
+
+    public OrderService(OrderRepository orderRepository, CartRepository cartRepository, ProductRepository productRepository) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.productRepository = productRepository;
@@ -26,6 +26,10 @@ public class OrderService {
                             ShippingPolicy shippingPolicy,
                             Payable paymentMethod){
         Cart cart = cartRepository.findById(cart_id);
+        if (cart == null) {
+            throw new EntityNotFoundException("Cart", cart_id);
+        }
+
         Order order = new Order();
         for(CartItem cartItem : cart.getItems()){
             order.addItem(cartItem);
@@ -55,7 +59,7 @@ public class OrderService {
     public Order findById(int order_id){
         Order order = orderRepository.find(order_id);
         if(order == null){
-            throw new IllegalArgumentException("Order not found");
+            throw new EntityNotFoundException("Order", order_id);
         }
         return order;
     }

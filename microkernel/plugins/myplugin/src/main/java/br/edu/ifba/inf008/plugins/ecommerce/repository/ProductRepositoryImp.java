@@ -1,5 +1,6 @@
 package br.edu.ifba.inf008.plugins.ecommerce.repository;
 
+import br.edu.ifba.inf008.plugins.ecommerce.exception.RepositoryException;
 import br.edu.ifba.inf008.plugins.ecommerce.model.Product;
 
 import java.sql.*;
@@ -9,18 +10,28 @@ import java.util.List;
 public class ProductRepositoryImp implements ProductRepository{
     @Override
     public void save(Product product) {
-        String sql = "INSERT INTO product (name, description, price, stock) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO products (name, description, price, stock) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = ConnectionFactory.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
             stmt.setString(1, product.getName());
             stmt.setString(2, product.getDescription());
             stmt.setDouble(3, product.getPrice());
             stmt.setInt(4, product.getStock());
 
             stmt.executeUpdate();
-        } catch (SQLException e){
-            throw new RuntimeException("Error saving product", e);
+
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    product.setProduct_id(rs.getInt(1));
+                } else {
+                    throw new SQLException("Failed to retrieve the generated product ID.");
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new RepositoryException("Error saving product", e);
         }
     }
 
@@ -38,7 +49,7 @@ public class ProductRepositoryImp implements ProductRepository{
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error verifying product existence by ID", e);
+            throw new RepositoryException("Error verifying product existence by ID", e);
         }
     }
 
@@ -56,7 +67,7 @@ public class ProductRepositoryImp implements ProductRepository{
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error checking for product existence by name", e);
+            throw new RepositoryException("Error checking for product existence by name", e);
         }
     }
 
@@ -87,7 +98,7 @@ public class ProductRepositoryImp implements ProductRepository{
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error searching for product by ID", e);
+            throw new RepositoryException("Error searching for product by ID", e);
         }
     }
 
@@ -108,7 +119,7 @@ public class ProductRepositoryImp implements ProductRepository{
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error retrieving product by name", e);
+            throw new RepositoryException("Error retrieving product by name", e);
         }
     }
 
@@ -127,11 +138,11 @@ public class ProductRepositoryImp implements ProductRepository{
 
             int rows = stmt.executeUpdate();
             if (rows == 0) {
-                throw new RuntimeException("Product with ID " + product.getProduct_id() + " not found.");
+                throw new SQLException("Product with ID " + product.getProduct_id() + " not found.");
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error updating product", e);
+            throw new RepositoryException("Error updating product", e);
         }
     }
 
@@ -146,11 +157,11 @@ public class ProductRepositoryImp implements ProductRepository{
             int rows = stmt.executeUpdate();
 
             if (rows == 0) {
-                throw new RuntimeException("Product with ID " + product_id + " not found.");
+                throw new SQLException("Product with ID " + product_id + " not found.");
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error deleting product", e);
+            throw new RepositoryException("Error deleting product", e);
         }
     }
 
@@ -168,7 +179,7 @@ public class ProductRepositoryImp implements ProductRepository{
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error retrieving all products", e);
+            throw new RepositoryException("Error retrieving all products", e);
         }
 
         return products;
