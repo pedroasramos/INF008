@@ -14,4 +14,8 @@ public class CouponDiscountPolicy implements DiscountPolicy{
     public double calculateDiscount(Order order) {
         return (order.calculateSubtotal() * percentage) / 100;
     }
+
+    public String getCoupon() {
+        return coupon;
+    }
 }

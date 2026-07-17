@@ -8,6 +8,14 @@ public class Cart {
     private int cart_id;
     private List<CartItem> items = new ArrayList<>();
 
+    public int getCart_id() {
+        return cart_id;
+    }
+
+    public void setCart_id(int cart_id) {
+        this.cart_id = cart_id;
+    }
+
     public void addProduct(Product product, int quantity){
         CartItem item = new CartItem(product, quantity);
         items.add(item);

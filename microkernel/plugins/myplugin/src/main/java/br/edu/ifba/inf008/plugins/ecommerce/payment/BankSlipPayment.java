@@ -45,4 +45,12 @@ public class BankSlipPayment implements Payable{
         }
         return false;
     }
+
+    public String getBarcode() {
+        return barcode;
+    }
+
+    public String getDueDate() {
+        return dueDate;
+    }
 }

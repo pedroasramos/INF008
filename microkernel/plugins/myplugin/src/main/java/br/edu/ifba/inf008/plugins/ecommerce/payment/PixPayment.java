@@ -61,4 +61,8 @@ public class PixPayment implements Payable{
             return false;
         }
     }
+
+    public String getPixKey() {
+        return pixKey;
+    }
 }

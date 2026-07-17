@@ -43,4 +43,16 @@ public class CreditCardPayment implements Payable{
             throw new RuntimeException(e);
         }
     }
+
+    public long getCardNumber() {
+        return cardNumber;
+    }
+
+    public String getHolder() {
+        return holder;
+    }
+
+    public String getExpirationDate() {
+        return expirationDate;
+    }
 }

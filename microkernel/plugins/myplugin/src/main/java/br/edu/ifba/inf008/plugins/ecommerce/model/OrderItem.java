@@ -19,6 +19,10 @@ public class OrderItem {
         return quantity;
     }
 
+    public double getUnitPrice() {
+        return unitPrice;
+    }
+
     public double calculateSubtotal(){
         return unitPrice * quantity;
     }

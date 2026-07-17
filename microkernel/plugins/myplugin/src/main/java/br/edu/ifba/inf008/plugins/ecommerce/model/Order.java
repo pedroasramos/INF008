@@ -21,6 +21,21 @@ public class Order {
     private double shippingCost;
     private double total;
 
+    public Order(int order_id, List<OrderItem> orderItems, DiscountPolicy discountPolicy,
+                 ShippingPolicy shippingPolicy, Payable paymentMethod, OrderStatus status,
+                 double subtotal, double discount, double shippingCost, double total) {
+        this.order_id = order_id;
+        this.orderItems = orderItems;
+        this.discountPolicy = discountPolicy;
+        this.shippingPolicy = shippingPolicy;
+        this.paymentMethod = paymentMethod;
+        this.status = status;
+        this.subtotal = subtotal;
+        this.discount = discount;
+        this.shippingCost = shippingCost;
+        this.total = total;
+    }
+
     public void addItem(CartItem cartItem){
         OrderItem orderItem = new OrderItem(cartItem.getProduct(), cartItem.getQuantity(), cartItem.getPrice());
         orderItems.add(orderItem);
@@ -87,6 +102,42 @@ public class Order {
                 status = OrderStatus.CANCELLED;
                 break;
         }
+    }
+
+    public void setOrder_id(int order_id) {
+        this.order_id = order_id;
+    }
+
+    public int getOrder_id() {
+        return order_id;
+    }
+
+    public DiscountPolicy getDiscountPolicy() {
+        return discountPolicy;
+    }
+
+    public ShippingPolicy getShippingPolicy() {
+        return shippingPolicy;
+    }
+
+    public Payable getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public double getSubtotal() {
+        return subtotal;
+    }
+
+    public double getDiscount() {
+        return discount;
+    }
+
+    public double getShippingCost() {
+        return shippingCost;
+    }
+
+    public double getTotal() {
+        return total;
     }
 
     public OrderStatus getStatus() {
