@@ -2,6 +2,7 @@ package br.edu.ifba.inf008.plugins.ecommerce.service;
 
 import br.edu.ifba.inf008.plugins.ecommerce.discount.DiscountPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.exception.EntityNotFoundException;
+import br.edu.ifba.inf008.plugins.ecommerce.exception.InvalidPaymentException;
 import br.edu.ifba.inf008.plugins.ecommerce.model.*;
 import br.edu.ifba.inf008.plugins.ecommerce.payment.Payable;
 import br.edu.ifba.inf008.plugins.ecommerce.repository.*;
@@ -21,7 +22,7 @@ public class OrderService {
         this.productRepository = productRepository;
     }
 
-    public void createOrder(int cart_id,
+    public Order createOrder(int cart_id,
                             DiscountPolicy discountPolicy,
                             ShippingPolicy shippingPolicy,
                             Payable paymentMethod){
@@ -31,6 +32,8 @@ public class OrderService {
         }
 
         Order order = new Order();
+        order.setCustomerId(cart.getCustomerId());
+        order.setCartId(cart.getCart_id());
         for(CartItem cartItem : cart.getItems()){
             order.addItem(cartItem);
         }
@@ -43,17 +46,23 @@ public class OrderService {
                 for(CartItem cartItem : cart.getItems()){
                     Product product = cartItem.getProduct();
                     product.decreaseStock(cartItem.getQuantity());
-                    productRepository.update(product);
+                    productRepository.registerStockMovement(
+                            product.getProduct_id(), "OUTBOUND", cartItem.getQuantity(), "Order confirmed");
                 }
                 cart.clear();
+                cart.setStatus("CONVERTED");
                 cartRepository.update(cart);
                 break;
             case PENDING:
-            case INVALID_PAYMENT:
             case CANCELLED:
                 break;
+            case INVALID_PAYMENT:
+                orderRepository.save(order);
+                throw new InvalidPaymentException(
+                        "Payment could not be confirmed for the order: invalid payment data or state.");
         }
         orderRepository.save(order);
+        return order;
     }
 
     public Order findById(int order_id){
@@ -74,7 +83,8 @@ public class OrderService {
             for(OrderItem orderItem : order.getOrderItems()){
                 Product product = orderItem.getProduct();
                 product.increaseStock(orderItem.getQuantity());
-                productRepository.update(product);
+                productRepository.registerStockMovement(
+                        product.getProduct_id(), "INBOUND", orderItem.getQuantity(), "Order cancelled");
             }
             order.setStatus(OrderStatus.CANCELLED);
             orderRepository.update(order);

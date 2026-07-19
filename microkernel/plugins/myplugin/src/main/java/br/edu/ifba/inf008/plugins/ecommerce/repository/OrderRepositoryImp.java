@@ -1,14 +1,12 @@
 package br.edu.ifba.inf008.plugins.ecommerce.repository;
 
 import br.edu.ifba.inf008.plugins.ecommerce.discount.CouponDiscountPolicy;
-import br.edu.ifba.inf008.plugins.ecommerce.discount.DiscountPolicy;
-import br.edu.ifba.inf008.plugins.ecommerce.discount.DiscountPolicyFactory;
+import br.edu.ifba.inf008.plugins.ecommerce.discount.StudentDiscountPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.exception.RepositoryException;
 import br.edu.ifba.inf008.plugins.ecommerce.model.Order;
 import br.edu.ifba.inf008.plugins.ecommerce.model.OrderItem;
 import br.edu.ifba.inf008.plugins.ecommerce.model.OrderStatus;
 import br.edu.ifba.inf008.plugins.ecommerce.model.Product;
-import br.edu.ifba.inf008.plugins.ecommerce.payment.*;
 import br.edu.ifba.inf008.plugins.ecommerce.shipping.ShippingPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.shipping.ShippingPolicyFactory;
 
@@ -16,6 +14,12 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Persists orders against the support database schema (orders/order_items/payments/order_discounts).
+ * That schema does not store the concrete discount coupon or payment instrument details, so on
+ * read-back {@code discountPolicy} and {@code paymentMethod} are not reconstructed: the frozen
+ * subtotal/discount/shippingCost/total/status columns are the source of truth for historical orders.
+ */
 public class OrderRepositoryImp implements OrderRepository{
 
     private final ProductRepository productRepository;
@@ -26,62 +30,36 @@ public class OrderRepositoryImp implements OrderRepository{
 
     @Override
     public void save(Order order) {
-        String sqlOrder = "INSERT INTO orders (discount_policy_type, discount_coupon, " +
-                "shipping_policy_type, payment_method_type, payment_barcode, payment_due_date, " +
-                "payment_card_number, payment_card_holder, payment_card_expiration, payment_pix_key, " +
-                "status, subtotal, discount, shipping_cost, total) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sqlOrder = "INSERT INTO orders (customer_id, cart_id, shipping_method_id, status, " +
+                "subtotal, discount_total, shipping_total, grand_total) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-        String sqlItem = "INSERT INTO order_items (order_id, product_id, quantity, unit_price) " +
-                "VALUES (?, ?, ?, ?)";
+        String sqlItem = "INSERT INTO order_items (order_id, product_id, quantity, unit_price, line_total) " +
+                "VALUES (?, ?, ?, ?, ?)";
+
+        String sqlPayment = "INSERT INTO payments (order_id, payment_method, status, amount, failure_reason, paid_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?)";
 
         Connection conn = null;
         try {
             conn = ConnectionFactory.getConnection();
             conn.setAutoCommit(false);
 
+            int shippingMethodId = resolveShippingMethodId(conn, order.getShippingPolicy());
             int generatedOrderId;
 
             try (PreparedStatement stmt = conn.prepareStatement(sqlOrder, Statement.RETURN_GENERATED_KEYS)) {
-                String discountType = PolicyTypeResolver.resolveDiscountType(order.getDiscountPolicy());
-                String shippingType = PolicyTypeResolver.resolveShippingType(order.getShippingPolicy());
-                String paymentType = PolicyTypeResolver.resolvePaymentType(order.getPaymentMethod());
-
-                stmt.setString(1, discountType);
-                stmt.setString(2, discountType.equals("COUPON")
-                        ? ((CouponDiscountPolicy) order.getDiscountPolicy()).getCoupon() : null);
-
-                stmt.setString(3, shippingType);
-                stmt.setString(4, paymentType);
-
-                if (paymentType.equals("BANK_SLIP")) {
-                    BankSlipPayment p = (BankSlipPayment) order.getPaymentMethod();
-                    stmt.setString(5, p.getBarcode());
-                    stmt.setString(6, p.getDueDate());
+                stmt.setInt(1, order.getCustomerId());
+                if (order.getCartId() != null) {
+                    stmt.setInt(2, order.getCartId());
                 } else {
-                    stmt.setNull(5, Types.VARCHAR);
-                    stmt.setNull(6, Types.VARCHAR);
+                    stmt.setNull(2, Types.BIGINT);
                 }
-
-                if (paymentType.equals("CREDIT_CARD")) {
-                    CreditCardPayment p = (CreditCardPayment) order.getPaymentMethod();
-                    stmt.setLong(7, p.getCardNumber());
-                    stmt.setString(8, p.getHolder());
-                    stmt.setString(9, p.getExpirationDate());
-                } else {
-                    stmt.setNull(7, Types.BIGINT);
-                    stmt.setNull(8, Types.VARCHAR);
-                    stmt.setNull(9, Types.VARCHAR);
-                }
-
-                stmt.setString(10, paymentType.equals("PIX")
-                        ? ((PixPayment) order.getPaymentMethod()).getPixKey() : null);
-
-                stmt.setString(11, order.getStatus().name());
-                stmt.setDouble(12, order.getSubtotal());
-                stmt.setDouble(13, order.getDiscount());
-                stmt.setDouble(14, order.getShippingCost());
-                stmt.setDouble(15, order.getTotal());
+                stmt.setInt(3, shippingMethodId);
+                stmt.setString(4, order.getStatus().name());
+                stmt.setDouble(5, order.getSubtotal());
+                stmt.setDouble(6, order.getDiscount());
+                stmt.setDouble(7, order.getShippingCost());
+                stmt.setDouble(8, order.getTotal());
 
                 stmt.executeUpdate();
 
@@ -101,10 +79,32 @@ public class OrderRepositoryImp implements OrderRepository{
                     stmt.setInt(2, item.getProduct().getProduct_id());
                     stmt.setInt(3, item.getQuantity());
                     stmt.setDouble(4, item.getUnitPrice());
+                    stmt.setDouble(5, item.calculateSubtotal());
                     stmt.addBatch();
                 }
                 stmt.executeBatch();
             }
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlPayment)) {
+                stmt.setInt(1, generatedOrderId);
+                stmt.setString(2, PolicyTypeResolver.resolvePaymentType(order.getPaymentMethod()));
+                String paymentStatus = toPaymentStatus(order.getStatus());
+                stmt.setString(3, paymentStatus);
+                stmt.setDouble(4, order.getTotal());
+                if (order.getStatus() == OrderStatus.INVALID_PAYMENT || order.getStatus() == OrderStatus.CANCELLED) {
+                    stmt.setString(5, "Payment could not be confirmed: invalid payment data or state.");
+                } else {
+                    stmt.setNull(5, Types.VARCHAR);
+                }
+                if (order.getStatus() == OrderStatus.PAID) {
+                    stmt.setTimestamp(6, new Timestamp(System.currentTimeMillis()));
+                } else {
+                    stmt.setNull(6, Types.TIMESTAMP);
+                }
+                stmt.executeUpdate();
+            }
+
+            linkDiscountIfKnown(conn, order);
 
             conn.commit();
 
@@ -132,7 +132,7 @@ public class OrderRepositoryImp implements OrderRepository{
 
     @Override
     public Order find(int order_id) {
-        String sqlOrder = "SELECT * FROM orders WHERE order_id = ?";
+        String sqlOrder = "SELECT * FROM orders WHERE id = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sqlOrder)) {
@@ -145,7 +145,7 @@ public class OrderRepositoryImp implements OrderRepository{
                 }
 
                 List<OrderItem> items = findItemsByOrderId(conn, order_id);
-                return mapRow(rs, items);
+                return mapRow(conn, rs, items);
             }
 
         } catch (SQLException e) {
@@ -155,8 +155,8 @@ public class OrderRepositoryImp implements OrderRepository{
 
     @Override
     public void update(Order order) {
-        String sql = "UPDATE orders SET status = ?, subtotal = ?, discount = ?, " +
-                "shipping_cost = ?, total = ? WHERE order_id = ?";
+        String sql = "UPDATE orders SET status = ?, subtotal = ?, discount_total = ?, " +
+                "shipping_total = ?, grand_total = ? WHERE id = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -188,8 +188,9 @@ public class OrderRepositoryImp implements OrderRepository{
              ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
-                List<OrderItem> items = findItemsByOrderId(conn, rs.getInt("order_id"));
-                orders.add(mapRow(rs, items));
+                int orderId = rs.getInt("id");
+                List<OrderItem> items = findItemsByOrderId(conn, orderId);
+                orders.add(mapRow(conn, rs, items));
             }
 
         } catch (SQLException e) {
@@ -201,20 +202,55 @@ public class OrderRepositoryImp implements OrderRepository{
 
     @Override
     public void delete(int order_id) {
-        String sql = "DELETE FROM orders WHERE order_id = ?";
+        Connection conn = null;
+        try {
+            conn = ConnectionFactory.getConnection();
+            conn.setAutoCommit(false);
 
-        try (Connection conn = ConnectionFactory.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, order_id);
-            int rows = stmt.executeUpdate();
-
-            if (rows == 0) {
-                throw new SQLException("Order with ID " + order_id + " not found.");
+            try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM order_discounts WHERE order_id = ?")) {
+                stmt.setInt(1, order_id);
+                stmt.executeUpdate();
             }
 
+            try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM payments WHERE order_id = ?")) {
+                stmt.setInt(1, order_id);
+                stmt.executeUpdate();
+            }
+
+            try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM order_items WHERE order_id = ?")) {
+                stmt.setInt(1, order_id);
+                stmt.executeUpdate();
+            }
+
+            try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM orders WHERE id = ?")) {
+                stmt.setInt(1, order_id);
+                int rows = stmt.executeUpdate();
+                if (rows == 0) {
+                    throw new SQLException("Order with ID " + order_id + " not found.");
+                }
+            }
+
+            conn.commit();
+
         } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    throw new RepositoryException("Error reverting transaction", rollbackEx);
+                }
+            }
             throw new RepositoryException("Error deleting order", e);
+
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException closeEx) {
+                    throw new RepositoryException("Error closing connection", closeEx);
+                }
+            }
         }
     }
 
@@ -240,34 +276,96 @@ public class OrderRepositoryImp implements OrderRepository{
         return items;
     }
 
-    private Order mapRow(ResultSet rs, List<OrderItem> orderItems) throws SQLException {
-        DiscountPolicy discountPolicy = DiscountPolicyFactory.fromRow(
-                rs.getString("discount_policy_type"), rs.getString("discount_coupon"));
+    private Order mapRow(Connection conn, ResultSet rs, List<OrderItem> orderItems) throws SQLException {
+        ShippingPolicy shippingPolicy = resolveShippingPolicy(conn, rs.getInt("shipping_method_id"));
 
-        ShippingPolicy shippingPolicy = ShippingPolicyFactory.fromType(rs.getString("shipping_policy_type"));
-
-        Long cardNumber = rs.getObject("payment_card_number") != null ? rs.getLong("payment_card_number") : null;
-
-        Payable paymentMethod = PayableFactory.fromRow(
-                rs.getString("payment_method_type"),
-                rs.getString("payment_barcode"),
-                rs.getString("payment_due_date"),
-                cardNumber,
-                rs.getString("payment_card_holder"),
-                rs.getString("payment_card_expiration"),
-                rs.getString("payment_pix_key"));
-
-        return new Order(
-                rs.getInt("order_id"),
+        Order order = new Order(
+                rs.getInt("id"),
                 orderItems,
-                discountPolicy,
+                null,
                 shippingPolicy,
-                paymentMethod,
+                null,
                 OrderStatus.valueOf(rs.getString("status")),
                 rs.getDouble("subtotal"),
-                rs.getDouble("discount"),
-                rs.getDouble("shipping_cost"),
-                rs.getDouble("total")
+                rs.getDouble("discount_total"),
+                rs.getDouble("shipping_total"),
+                rs.getDouble("grand_total")
         );
+        order.setCustomerId(rs.getInt("customer_id"));
+        int cartId = rs.getInt("cart_id");
+        order.setCartId(rs.wasNull() ? null : cartId);
+        return order;
+    }
+
+    private int resolveShippingMethodId(Connection conn, ShippingPolicy policy) throws SQLException {
+        String code = PolicyTypeResolver.resolveShippingType(policy);
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT id FROM shipping_methods WHERE code = ?")) {
+            stmt.setString(1, code);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id");
+                }
+                throw new SQLException("Shipping method not found for code: " + code);
+            }
+        }
+    }
+
+    private ShippingPolicy resolveShippingPolicy(Connection conn, int shippingMethodId) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT code FROM shipping_methods WHERE id = ?")) {
+            stmt.setInt(1, shippingMethodId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return ShippingPolicyFactory.fromType(rs.getString("code"));
+                }
+                return null;
+            }
+        }
+    }
+
+    /**
+     * Links the order to a matching row in {@code discounts} for audit purposes, when one exists.
+     * Coupons that do not match a known discount code are still fully applied on the order
+     * (discount_total already carries the amount); the link is best-effort supplementary data.
+     */
+    private void linkDiscountIfKnown(Connection conn, Order order) throws SQLException {
+        if (order.getDiscountPolicy() == null || order.getDiscount() <= 0) {
+            return;
+        }
+
+        String code;
+        if (order.getDiscountPolicy() instanceof CouponDiscountPolicy) {
+            code = ((CouponDiscountPolicy) order.getDiscountPolicy()).getCoupon();
+        } else if (order.getDiscountPolicy() instanceof StudentDiscountPolicy) {
+            code = "STUDENT15";
+        } else {
+            return;
+        }
+
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT id FROM discounts WHERE code = ?")) {
+            stmt.setString(1, code);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (!rs.next()) {
+                    return;
+                }
+                int discountId = rs.getInt("id");
+                try (PreparedStatement insert = conn.prepareStatement(
+                        "INSERT INTO order_discounts (order_id, discount_id, amount) VALUES (?, ?, ?)")) {
+                    insert.setInt(1, order.getOrder_id());
+                    insert.setInt(2, discountId);
+                    insert.setDouble(3, order.getDiscount());
+                    insert.executeUpdate();
+                }
+            }
+        }
+    }
+
+    private String toPaymentStatus(OrderStatus status) {
+        switch (status) {
+            case PAID: return "PAID";
+            case PENDING: return "PENDING";
+            case INVALID_PAYMENT: return "INVALID";
+            case CANCELLED: return "FAILED";
+            default: return status.name();
+        }
     }
 }

@@ -2,13 +2,15 @@ package br.edu.ifba.inf008.plugins.ecommerce.model;
 
 public class Product {
     private int product_id;
+    private String sku;
     private String name;
     private String description;
     private double price;
     private int stock;
 
-    public Product(int product_id, String name, String description, double price, int stock) {
+    public Product(int product_id, String sku, String name, String description, double price, int stock) {
         this.product_id = product_id;
+        this.sku = sku;
         this.name = name;
         this.description = description;
         this.price = price;
@@ -32,7 +34,11 @@ public class Product {
     }
 
     public boolean hasStock(int quantity){
-        return quantity < getStock();
+        return quantity <= getStock();
+    }
+
+    public String getSku() {
+        return sku;
     }
 
     public String getName() {

@@ -11,6 +11,8 @@ import java.util.List;
 public class Order {
 
     private int order_id;
+    private int customerId;
+    private Integer cartId;
     private List<OrderItem> orderItems = new ArrayList<>();
     private DiscountPolicy discountPolicy;
     private ShippingPolicy shippingPolicy;
@@ -115,6 +117,22 @@ public class Order {
 
     public int getOrder_id() {
         return order_id;
+    }
+
+    public int getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(int customerId) {
+        this.customerId = customerId;
+    }
+
+    public Integer getCartId() {
+        return cartId;
+    }
+
+    public void setCartId(Integer cartId) {
+        this.cartId = cartId;
     }
 
     public DiscountPolicy getDiscountPolicy() {

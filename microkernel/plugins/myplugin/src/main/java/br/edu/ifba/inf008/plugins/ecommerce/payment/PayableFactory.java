@@ -5,8 +5,8 @@ public class PayableFactory {
                                   Long cardNumber, String cardHolder, String cardExpiration,
                                   String pixKey) {
         switch (type) {
-            case "BANK_SLIP": return new BankSlipPayment(barcode, dueDate);
-            case "CREDIT_CARD": return new CreditCardPayment(cardNumber, cardHolder, 0, cardExpiration); // cvv=0, não persistido
+            case "BOLETO": return new BoletoPayment(barcode, dueDate);
+            case "CREDIT_CARD": return new CreditCardPayment(cardNumber, cardHolder, 0, cardExpiration); // cvv is not persisted
             case "PIX": return new PixPayment(pixKey);
             default: throw new IllegalArgumentException("Unknown payment type: " + type);
         }

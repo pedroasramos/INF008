@@ -13,4 +13,5 @@ public interface ProductRepository {
     public void update(Product product);
     public void delete(int product_id);
     public List<Product> findAll();
+    public void registerStockMovement(int product_id, String movementType, int quantity, String reason);
 }

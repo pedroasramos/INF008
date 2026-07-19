@@ -20,8 +20,8 @@ public class CartRepositoryImp implements CartRepository{
 
     @Override
     public void save(Cart cart) {
-        String sqlCart = "INSERT INTO carts () VALUES ()";
-        String sqlItem = "INSERT INTO cart_items (cart_id, product_id, quantity, price) VALUES (?, ?, ?, ?)";
+        String sqlCart = "INSERT INTO carts (customer_id, status) VALUES (?, ?)";
+        String sqlItem = "INSERT INTO cart_items (cart_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)";
 
         Connection conn = null;
         try {
@@ -31,6 +31,8 @@ public class CartRepositoryImp implements CartRepository{
             int generatedCartId;
 
             try (PreparedStatement stmt = conn.prepareStatement(sqlCart, Statement.RETURN_GENERATED_KEYS)) {
+                stmt.setInt(1, cart.getCustomerId());
+                stmt.setString(2, cart.getStatus());
                 stmt.executeUpdate();
 
                 try (ResultSet rs = stmt.getGeneratedKeys()) {
@@ -58,13 +60,20 @@ public class CartRepositoryImp implements CartRepository{
 
     @Override
     public void update(Cart cart) {
+        String sqlCart = "UPDATE carts SET status = ? WHERE id = ?";
         String sqlDeleteItems = "DELETE FROM cart_items WHERE cart_id = ?";
-        String sqlItem = "INSERT INTO cart_items (cart_id, product_id, quantity, price) VALUES (?, ?, ?, ?)";
+        String sqlItem = "INSERT INTO cart_items (cart_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)";
 
         Connection conn = null;
         try {
             conn = ConnectionFactory.getConnection();
             conn.setAutoCommit(false);
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlCart)) {
+                stmt.setString(1, cart.getStatus());
+                stmt.setInt(2, cart.getCart_id());
+                stmt.executeUpdate();
+            }
 
             try (PreparedStatement stmt = conn.prepareStatement(sqlDeleteItems)) {
                 stmt.setInt(1, cart.getCart_id());
@@ -86,26 +95,38 @@ public class CartRepositoryImp implements CartRepository{
 
     @Override
     public void delete(int cart_id) {
-        String sql = "DELETE FROM carts WHERE cart_id = ?";
+        Connection conn = null;
+        try {
+            conn = ConnectionFactory.getConnection();
+            conn.setAutoCommit(false);
 
-        try (Connection conn = ConnectionFactory.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, cart_id);
-            int rows = stmt.executeUpdate();
-
-            if (rows == 0) {
-                throw new SQLException("Cart with ID " + cart_id + " not found.");
+            try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM cart_items WHERE cart_id = ?")) {
+                stmt.setInt(1, cart_id);
+                stmt.executeUpdate();
             }
 
+            try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM carts WHERE id = ?")) {
+                stmt.setInt(1, cart_id);
+                int rows = stmt.executeUpdate();
+                if (rows == 0) {
+                    throw new SQLException("Cart with ID " + cart_id + " not found.");
+                }
+            }
+
+            conn.commit();
+
         } catch (SQLException e) {
+            rollbackQuietly(conn);
             throw new RepositoryException("Error deleting cart", e);
+
+        } finally {
+            closeQuietly(conn);
         }
     }
 
     @Override
     public Cart findById(int cart_id) {
-        String sqlCart = "SELECT cart_id FROM carts WHERE cart_id = ?";
+        String sqlCart = "SELECT id, customer_id, status FROM carts WHERE id = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sqlCart)) {
@@ -117,8 +138,9 @@ public class CartRepositoryImp implements CartRepository{
                     return null;
                 }
 
-                Cart cart = new Cart();
-                cart.setCart_id(rs.getInt("cart_id"));
+                Cart cart = new Cart(rs.getInt("customer_id"));
+                cart.setCart_id(rs.getInt("id"));
+                cart.setStatus(rs.getString("status"));
 
                 for (CartItem item : findItemsByCartId(conn, cart_id)) {
                     cart.addProduct(item.getProduct(), item.getQuantity());

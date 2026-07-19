@@ -13,10 +13,14 @@
     <artifactId>myplugin</artifactId>
 
     <dependencies>
+        <!-- Provided by the host application's classpath at runtime (see app/pom.xml);
+             must not be bundled into the plugin jar or IPlugin/ICore would be duplicated
+             across classloaders. -->
         <dependency>
             <groupId>br.edu.ifba.inf008</groupId>
             <artifactId>interfaces</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- MariaDB JDBC -->
@@ -36,17 +40,26 @@
 
     <build>
         <plugins>
-            <!-- Configure maven-jar-plugin -->
+            <!-- PluginController loads each plugin jar in isolation via its own
+                 URLClassLoader (see PluginController#init), without resolving Maven
+                 dependencies. The plugin jar must therefore bundle its own runtime
+                 dependencies (HikariCP, the MariaDB driver) to be loadable standalone. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.2.0</version>
-                <configuration>
-                    <!-- Change the output directory -->
-                    <outputDirectory>${project.basedir}/../</outputDirectory>
-                    <!-- Change the JAR file name -->
-                    <finalName>MyPlugin</finalName>
-                </configuration>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <outputFile>${project.basedir}/../MyPlugin.jar</outputFile>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

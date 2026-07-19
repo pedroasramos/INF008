@@ -13,8 +13,8 @@ public class CustomerController {
         this.customerService = customerService;
     }
 
-    public void createCustomer(String name, String email) {
-        Customer customer = new Customer(name, email);
+    public void createCustomer(String name, String email, String customerType) {
+        Customer customer = new Customer(name, email, customerType);
         customerService.save(customer);
     }
 
@@ -30,8 +30,8 @@ public class CustomerController {
         return customerService.findAll();
     }
 
-    public void updateCustomer(int customerId, String name, String email) {
-        Customer customer = new Customer(customerId, name, email);
+    public void updateCustomer(int customerId, String name, String email, String customerType) {
+        Customer customer = new Customer(customerId, name, email, customerType);
         customerService.update(customer);
     }
 

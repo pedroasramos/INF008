@@ -2,9 +2,10 @@ package br.edu.ifba.inf008.plugins.ecommerce.controller;
 
 import br.edu.ifba.inf008.plugins.ecommerce.discount.CouponDiscountPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.discount.DiscountPolicy;
+import br.edu.ifba.inf008.plugins.ecommerce.discount.NoDiscountPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.discount.StudentDiscountPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.model.Order;
-import br.edu.ifba.inf008.plugins.ecommerce.payment.BankSlipPayment;
+import br.edu.ifba.inf008.plugins.ecommerce.payment.BoletoPayment;
 import br.edu.ifba.inf008.plugins.ecommerce.payment.CreditCardPayment;
 import br.edu.ifba.inf008.plugins.ecommerce.payment.Payable;
 import br.edu.ifba.inf008.plugins.ecommerce.payment.PixPayment;
@@ -23,18 +24,11 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    public void createOrderWithCoupon(int cartId, String coupon, String shippingType,
-                                      Payable paymentMethod) {
-        DiscountPolicy discountPolicy = new CouponDiscountPolicy(coupon);
+    public Order placeOrder(int cartId, String discountType, String couponCode, String shippingType,
+                             Payable paymentMethod) {
+        DiscountPolicy discountPolicy = resolveDiscountPolicy(discountType, couponCode);
         ShippingPolicy shippingPolicy = resolveShippingPolicy(shippingType);
-        orderService.createOrder(cartId, discountPolicy, shippingPolicy, paymentMethod);
-    }
-
-    public void createOrderWithStudentDiscount(int cartId, String shippingType,
-                                               Payable paymentMethod) {
-        DiscountPolicy discountPolicy = new StudentDiscountPolicy();
-        ShippingPolicy shippingPolicy = resolveShippingPolicy(shippingType);
-        orderService.createOrder(cartId, discountPolicy, shippingPolicy, paymentMethod);
+        return orderService.createOrder(cartId, discountPolicy, shippingPolicy, paymentMethod);
     }
 
     public Payable buildCreditCardPayment(long cardNumber, String holder, int cvv, String expirationDate) {
@@ -45,8 +39,8 @@ public class OrderController {
         return new PixPayment(pixKey);
     }
 
-    public Payable buildBankSlipPayment(String barcode, String dueDate) {
-        return new BankSlipPayment(barcode, dueDate);
+    public Payable buildBoletoPayment(String barcode, String dueDate) {
+        return new BoletoPayment(barcode, dueDate);
     }
 
     public Order getOrder(int orderId) {
@@ -63,6 +57,15 @@ public class OrderController {
 
     public void deleteOrder(int orderId) {
         orderService.remove(orderId);
+    }
+
+    private DiscountPolicy resolveDiscountPolicy(String type, String couponCode) {
+        switch (type) {
+            case "COUPON": return new CouponDiscountPolicy(couponCode);
+            case "STUDENT": return new StudentDiscountPolicy();
+            case "NONE": return new NoDiscountPolicy();
+            default: throw new IllegalArgumentException("Invalid discount type: " + type);
+        }
     }
 
     private ShippingPolicy resolveShippingPolicy(String type) {

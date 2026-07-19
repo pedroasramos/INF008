@@ -1,10 +1,8 @@
 package br.edu.ifba.inf008.plugins.ecommerce.payment;
 
-import br.edu.ifba.inf008.plugins.ecommerce.model.OrderStatus;
-
-import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 
 public class CreditCardPayment implements Payable{
@@ -29,7 +27,7 @@ public class CreditCardPayment implements Payable{
             }
             return PaymentStatus.PAID;
         }
-        return PaymentStatus.FAILED;
+        return PaymentStatus.INVALID;
     }
 
     @Override
@@ -37,10 +35,10 @@ public class CreditCardPayment implements Payable{
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern(template)
                     .withResolverStyle(ResolverStyle.STRICT);
-            YearMonth date = YearMonth.parse(expirationDate, formatter);
-            return true;
-        } catch (RuntimeException e) {
-            throw new RuntimeException(e);
+            YearMonth expiration = YearMonth.parse(expirationDate, formatter);
+            return !expiration.isBefore(YearMonth.now());
+        } catch (DateTimeParseException e) {
+            return false;
         }
     }
 

@@ -4,17 +4,17 @@ public class Customer {
     private int customer_id;
     private String name;
     private String email;
+    private String customerType;
 
-    public Customer(String name, String email) {
-        this.customer_id = 0;
-        this.name = name;
-        this.email = email;
+    public Customer(String name, String email, String customerType) {
+        this(0, name, email, customerType);
     }
 
-    public Customer(int customer_id, String name, String email) {
+    public Customer(int customer_id, String name, String email, String customerType) {
         this.customer_id = customer_id;
         this.name = name;
         this.email = email;
+        this.customerType = customerType;
     }
 
     public int getCustomer_id() {
@@ -31,5 +31,9 @@ public class Customer {
 
     public String getEmail() {
         return email;
+    }
+
+    public String getCustomerType() {
+        return customerType;
     }
 }

@@ -13,8 +13,8 @@ public class ProductController {
         this.productService = productService;
     }
 
-    public void createProduct(String name, String description, double price, int stock) {
-        Product product = new Product(0, name, description, price, stock);
+    public void createProduct(String sku, String name, String description, double price, int stock) {
+        Product product = new Product(0, sku, name, description, price, stock);
         productService.save(product);
     }
 
@@ -30,8 +30,9 @@ public class ProductController {
         return productService.findAll();
     }
 
-    public void updateProduct(int productId, String name, String description, double price, int stock) {
-        Product product = new Product(productId, name, description, price, stock);
+    public void updateProduct(int productId, String sku, String name, String description, double price) {
+        Product current = productService.findById(productId);
+        Product product = new Product(productId, sku, name, description, price, current.getStock());
         productService.update(product);
     }
 

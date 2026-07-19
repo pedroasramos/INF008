@@ -1,18 +1,16 @@
 package br.edu.ifba.inf008.plugins.ecommerce.payment;
 
-import br.edu.ifba.inf008.plugins.ecommerce.model.OrderStatus;
-
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 
-public class BankSlipPayment implements Payable{
+public class BoletoPayment implements Payable{
     private String barcode;
     private String dueDate;
     private final String formatter = "dd/MM/yyyy";
 
-    public BankSlipPayment(String barcode, String dueDate) {
+    public BoletoPayment(String barcode, String dueDate) {
         this.barcode = barcode;
         this.dueDate = dueDate;
     }

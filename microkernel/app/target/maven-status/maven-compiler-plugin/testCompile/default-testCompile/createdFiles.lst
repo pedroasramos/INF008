@@ -1,0 +1,4 @@
+br/edu/ifba/inf008/interfaces/ICoreTest.class
+br/edu/ifba/inf008/shell/PluginControllerTest.class
+br/edu/ifba/inf008/interfaces/ICoreTest$TestCore.class
+br/edu/ifba/inf008/shell/AuthenticationControllerTest.class

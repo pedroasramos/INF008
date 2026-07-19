@@ -11,6 +11,10 @@ public class CartController {
         this.cartService = cartService;
     }
 
+    public Cart createCart(int customerId) {
+        return cartService.createCart(customerId);
+    }
+
     public void addProductToCart(int cartId, int productId, int quantity) {
         cartService.addProduct(cartId, productId, quantity);
     }
