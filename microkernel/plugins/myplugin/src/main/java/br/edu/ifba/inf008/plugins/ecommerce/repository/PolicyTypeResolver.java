@@ -8,10 +8,11 @@ import br.edu.ifba.inf008.plugins.ecommerce.payment.BoletoPayment;
 import br.edu.ifba.inf008.plugins.ecommerce.payment.CreditCardPayment;
 import br.edu.ifba.inf008.plugins.ecommerce.payment.Payable;
 import br.edu.ifba.inf008.plugins.ecommerce.payment.PixPayment;
+import br.edu.ifba.inf008.plugins.ecommerce.shipping.EconomyShippingPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.shipping.ExpressShippingPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.shipping.PickupShippingPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.shipping.ShippingPolicy;
-import br.edu.ifba.inf008.plugins.ecommerce.shipping.StandardShinppingPolicy;
+import br.edu.ifba.inf008.plugins.ecommerce.shipping.StandardShippingPolicy;
 
 public class PolicyTypeResolver {
     public static String resolveDiscountType(DiscountPolicy policy) {
@@ -24,7 +25,8 @@ public class PolicyTypeResolver {
     public static String resolveShippingType(ShippingPolicy policy) {
         if (policy instanceof ExpressShippingPolicy) return "EXPRESS";
         if (policy instanceof PickupShippingPolicy) return "PICKUP";
-        if (policy instanceof StandardShinppingPolicy) return "STANDARD";
+        if (policy instanceof StandardShippingPolicy) return "STANDARD";
+        if (policy instanceof EconomyShippingPolicy) return "ECONOMY";
         throw new IllegalArgumentException("Unmapped shipping type: " + policy.getClass());
     }
 

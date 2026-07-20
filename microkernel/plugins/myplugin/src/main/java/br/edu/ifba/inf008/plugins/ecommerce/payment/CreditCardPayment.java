@@ -33,8 +33,12 @@ public class CreditCardPayment implements Payable{
     @Override
     public boolean validate() {
         try {
+            // SMART (not STRICT): with the "yy" pattern letter, java.time resolves the parsed
+            // field as YearOfEra, which YearMonth.from(...) cannot consume under STRICT (it only
+            // accepts the proleptic YEAR field), so every date would fail to parse. SMART performs
+            // that YearOfEra -> YEAR conversion while still rejecting out-of-range months/years.
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern(template)
-                    .withResolverStyle(ResolverStyle.STRICT);
+                    .withResolverStyle(ResolverStyle.SMART);
             YearMonth expiration = YearMonth.parse(expirationDate, formatter);
             return !expiration.isBefore(YearMonth.now());
         } catch (DateTimeParseException e) {

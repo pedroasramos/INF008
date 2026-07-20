@@ -5,7 +5,8 @@ public class ShippingPolicyFactory {
         switch (type) {
             case "EXPRESS": return new ExpressShippingPolicy();
             case "PICKUP": return new PickupShippingPolicy();
-            case "STANDARD": return new StandardShinppingPolicy();
+            case "STANDARD": return new StandardShippingPolicy();
+            case "ECONOMY": return new EconomyShippingPolicy();
             default: throw new IllegalArgumentException("Unknown shipping method: " + type);
         }
     }

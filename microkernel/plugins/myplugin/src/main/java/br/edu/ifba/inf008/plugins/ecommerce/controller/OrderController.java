@@ -13,7 +13,7 @@ import br.edu.ifba.inf008.plugins.ecommerce.service.OrderService;
 import br.edu.ifba.inf008.plugins.ecommerce.shipping.ExpressShippingPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.shipping.PickupShippingPolicy;
 import br.edu.ifba.inf008.plugins.ecommerce.shipping.ShippingPolicy;
-import br.edu.ifba.inf008.plugins.ecommerce.shipping.StandardShinppingPolicy;
+import br.edu.ifba.inf008.plugins.ecommerce.shipping.StandardShippingPolicy;
 
 import java.util.List;
 
@@ -72,7 +72,7 @@ public class OrderController {
         switch (type) {
             case "EXPRESS": return new ExpressShippingPolicy();
             case "PICKUP": return new PickupShippingPolicy();
-            case "STANDARD": return new StandardShinppingPolicy();
+            case "STANDARD": return new StandardShippingPolicy();
             default: throw new IllegalArgumentException("Invalid shipping type: " + type);
         }
     }

@@ -29,8 +29,12 @@ public class BoletoPayment implements Payable{
     @Override
     public boolean validate() {
         try {
+            // SMART (not STRICT): the "yyyy" pattern letter resolves to YearOfEra, which
+            // LocalDate.from(...) cannot consume under STRICT (it only accepts the proleptic
+            // YEAR field), so every date would fail to parse. SMART performs that conversion
+            // while still rejecting out-of-range days/months.
             DateTimeFormatter formatter1 = DateTimeFormatter.ofPattern(formatter)
-                    .withResolverStyle(ResolverStyle.STRICT);
+                    .withResolverStyle(ResolverStyle.SMART);
             LocalDate expiration = LocalDate.parse(dueDate, formatter1);
             LocalDate today = LocalDate.now();
             if (expiration.isAfter(today)) {

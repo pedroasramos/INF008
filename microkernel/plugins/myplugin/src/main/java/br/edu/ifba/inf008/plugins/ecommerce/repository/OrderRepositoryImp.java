@@ -55,7 +55,7 @@ public class OrderRepositoryImp implements OrderRepository{
                     stmt.setNull(2, Types.BIGINT);
                 }
                 stmt.setInt(3, shippingMethodId);
-                stmt.setString(4, order.getStatus().name());
+                stmt.setString(4, orderStatusToDb(order.getStatus()));
                 stmt.setDouble(5, order.getSubtotal());
                 stmt.setDouble(6, order.getDiscount());
                 stmt.setDouble(7, order.getShippingCost());
@@ -161,7 +161,7 @@ public class OrderRepositoryImp implements OrderRepository{
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, order.getStatus().name());
+            stmt.setString(1, orderStatusToDb(order.getStatus()));
             stmt.setDouble(2, order.getSubtotal());
             stmt.setDouble(3, order.getDiscount());
             stmt.setDouble(4, order.getShippingCost());
@@ -285,7 +285,7 @@ public class OrderRepositoryImp implements OrderRepository{
                 null,
                 shippingPolicy,
                 null,
-                OrderStatus.valueOf(rs.getString("status")),
+                orderStatusFromDb(rs.getString("status")),
                 rs.getDouble("subtotal"),
                 rs.getDouble("discount_total"),
                 rs.getDouble("shipping_total"),
@@ -366,6 +366,38 @@ public class OrderRepositoryImp implements OrderRepository{
             case INVALID_PAYMENT: return "INVALID";
             case CANCELLED: return "FAILED";
             default: return status.name();
+        }
+    }
+
+    /**
+     * The support database's seed data uses its own vocabulary for {@code orders.status}
+     * (e.g. "PENDING_PAYMENT", "PAYMENT_FAILED") instead of this project's {@link OrderStatus}
+     * constant names, so a plain {@code OrderStatus.valueOf(...)} throws on those rows. These
+     * two methods keep the mapping symmetric: what {@link #orderStatusToDb} writes is exactly
+     * what {@link #orderStatusFromDb} reads back, and the pre-loaded example orders remain readable.
+     */
+    private String orderStatusToDb(OrderStatus status) {
+        switch (status) {
+            case PENDING: return "PENDING_PAYMENT";
+            case PAID: return "PAID";
+            case CANCELLED: return "CANCELLED";
+            case INVALID_PAYMENT: return "PAYMENT_FAILED";
+            default: return status.name();
+        }
+    }
+
+    private OrderStatus orderStatusFromDb(String dbStatus) {
+        switch (dbStatus) {
+            case "PENDING_PAYMENT": return OrderStatus.PENDING;
+            case "PAID": return OrderStatus.PAID;
+            case "CANCELLED": return OrderStatus.CANCELLED;
+            case "PAYMENT_FAILED": return OrderStatus.INVALID_PAYMENT;
+            default:
+                try {
+                    return OrderStatus.valueOf(dbStatus);
+                } catch (IllegalArgumentException e) {
+                    throw new RepositoryException("Unknown order status in database: " + dbStatus, e);
+                }
         }
     }
 }
